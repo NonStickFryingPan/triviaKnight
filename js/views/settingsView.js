@@ -101,19 +101,21 @@ const SettingsView = (function () {
 
   function syncCard() {
     const managed = LlmClient.keyManagedRemotely();
+    const syncPending = !Tk.storage.get('tk_sheet_url', '') || !Tk.storage.get('tk_sheet_token', '');
     const fields = managed ? [
       Tk.el('div', { class: 'row', style: 'margin-top:10px' }, [
         Tk.el('span', { class: 'desc', text: 'Apps Script URL' }),
         Tk.el('div', { class: 'ctrl' }, [
-          Tk.el('span', { class: 'tag', text: 'managed by passcode' })
+          Tk.el('span', { class: 'tag', text: syncPending ? 'not set on server' : 'managed by passcode' })
         ])
       ]),
       Tk.el('div', { class: 'row' }, [
         Tk.el('span', { class: 'desc', text: 'Token' }),
         Tk.el('div', { class: 'ctrl' }, [
-          Tk.el('span', { class: 'tag tag-yellow', text: 'managed by passcode' })
+          Tk.el('span', { class: 'tag tag-yellow', text: syncPending ? 'not set on server' : 'managed by passcode' })
         ])
-      ])
+      ]),
+      syncPending ? Tk.el('p', { class: 'hint', style: 'margin-top:10px', text: 'Set SHEET_URL and SHEET_TOKEN in Netlify environment variables, redeploy, then unlock again.' }) : null
     ] : [
       Tk.el('div', { style: 'display:flex;gap:10px;align-items:flex-end;margin-top:14px;flex-wrap:wrap' }, [
         Tk.el('div', { class: 'field', style: 'flex:1 1 320px;margin:0' }, [
@@ -156,7 +158,7 @@ const SettingsView = (function () {
     const card = Tk.el('div', { class: 'paper settings-card rot-1' }, [
       Tk.el('h3', { text: 'Backup & Sync' }),
       Tk.el('p', { class: 'hint', text: 'Sync between devices through your own Google Sheet. Pulls merge per card (newest wins); push overwrites the sheet; deleted cards can come back from it.' }),
-      fields,
+      ...fields,
       Tk.el('div', { style: 'display:flex;gap:10px;margin-top:16px;flex-wrap:wrap' }, actions),
       Tk.el('p', { class: 'hint', style: 'margin-top:12px', id: 'sync-last', text: 'Last synced: ' + formatLastSync(SheetsSync.lastSync()) })
     ]);

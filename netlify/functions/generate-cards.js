@@ -25,11 +25,16 @@ exports.handler = async (event) => {
     return json(500, { error: 'DEEPSEEK_KEY is not set in Netlify environment variables' });
   }
 
-  const result = await generateCards({
-    apiKey,
-    dumpText: typeof body.dumpText === 'string' ? body.dumpText : '',
-    existingCategories: Array.isArray(body.existingCategories) ? body.existingCategories : []
-  });
+  let result;
+  try {
+    result = await generateCards({
+      apiKey,
+      dumpText: typeof body.dumpText === 'string' ? body.dumpText : '',
+      existingCategories: Array.isArray(body.existingCategories) ? body.existingCategories : []
+    });
+  } catch (err) {
+    return json(502, { error: 'Upstream request failed: ' + err.message });
+  }
 
   return json(
     result.statusCode || (result.error ? 400 : 200),

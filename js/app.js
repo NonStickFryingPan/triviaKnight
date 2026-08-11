@@ -118,12 +118,20 @@
       route();
       autoPull();
     });
-    Db.initDB().then(() => {
+    Db.initDB().catch((err) => {
+      viewEl.innerHTML = '';
+      try {
+        viewEl.appendChild(Tk.el('p', { text: 'Could not open storage: ' + ((err && err.message) ? err.message : String(err)) }));
+      } catch (renderErr) {
+        console.error('Storage error page failed to render:', renderErr);
+      }
+      return Promise.reject(err);
+    }).then(() => {
       route();
       autoPull();
     }).catch((err) => {
-      viewEl.innerHTML = '';
-      viewEl.appendChild(Tk.el('p', { text: 'Could not open storage: ' + err.message }));
+      console.error('App init failed:', err);
+      toast((err && err.message) ? err.message : String(err), true);
     });
   }
 
