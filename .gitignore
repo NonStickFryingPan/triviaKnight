@@ -1,0 +1,9 @@
+node_modules/
+.netlify/
+*.log
+.DS_Store
+.env
+PLAN.md
+DESIGN.md
+slimJim.html
+docs/
