@@ -252,8 +252,7 @@ const SettingsView = (function () {
   function aboutCard() {
     const card = Tk.el('div', { class: 'paper settings-card rot-1' }, [
       Tk.el('h3', { text: 'The archive' }),
-      Tk.el('p', { class: 'hint', id: 'stat-line', text: 'Loading…' }),
-      Tk.el('p', { class: 'hint', text: 'FSRS scheduler — the memory model behind Anki\'s modern scheduling. Backend correctness is pure math; the LLM never touches scheduling or grading.' })
+      Tk.el('p', { class: 'hint', id: 'stat-line', text: 'Loading…' })
     ]);
     return card;
   }
