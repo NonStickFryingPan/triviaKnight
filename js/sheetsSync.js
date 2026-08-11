@@ -16,9 +16,9 @@ const SheetsSync = (function () {
     if (!url || !token) return Promise.reject(new Error('Sheet sync not configured'));
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
-    return fetch(url + '?token=' + encodeURIComponent(token), {
+    return fetch(url, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ token, ...payload }),
       signal: ctrl.signal
     }).then((res) => {
       if (!res.ok) throw new Error('Sheet server responded ' + res.status);
