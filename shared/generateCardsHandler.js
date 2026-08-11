@@ -4,7 +4,11 @@ const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
 const MODEL = 'deepseek-v4-flash';
 const MAX_DUMP_CHARS = 20000;
 const MAX_TOKENS = 2000;
+const MAX_ATTEMPTS = 2;
+const MAX_CORRECTION_REASONS = 6;
 const ALLOWED_TYPES = ['flashcard', 'mcq', 'fill_blank'];
+
+const LIMITS = { text: 120, short: 80, category: 40 };
 
 function buildSystemPrompt(existingCategories) {
   const cats = Array.isArray(existingCategories) && existingCategories.length
@@ -35,11 +39,18 @@ function buildSystemPrompt(existingCategories) {
     '  ]',
     '}',
     '',
-    'Rules:',
-    '- "options" must contain exactly 4 strings; "correctIndex" must be the index of the correct option inside "options".',
-    '- "sentence" must contain "___" marking the missing word.',
+    'Rules — every card must satisfy ALL of these, exactly:',
+    '- Use ONLY the fields shown above for the card\'s type. No extra fields.',
+    '- "flashcard": "front" at most 120 characters, "back" at most 80 characters.',
+    '- "mcq": "options" must contain EXACTLY 4 strings, each at most 80 characters;',
+    '  "correctIndex" must be the 0-based index (0, 1, 2, or 3) of the correct option inside "options".',
+    '- "fill_blank": "sentence" at most 120 characters and must contain "___" marking the missing word exactly once; "answer" at most 80 characters.',
+    '- "category" at most 40 characters.',
+    '- Never emit two cards with the same "front" (or "question" or "sentence").',
     '- Keep front/question/sentence short — a question or prompt.',
-    '- Keep back/answers short and precise — just the answer, no commentary.'
+    '- Keep back/answers short and precise — just the answer, no commentary.',
+    '',
+    'Return raw JSON only: no markdown fences, no ``` markers, no text before or after the JSON.'
   ].join('\n');
 }
 
@@ -54,44 +65,67 @@ function validateRequest(body) {
 }
 
 function cleanCard(raw) {
-  if (!raw || typeof raw !== 'object') return null;
+  if (!raw || typeof raw !== 'object') return { error: 'card is not an object' };
   const type = String(raw.type || '');
-  if (ALLOWED_TYPES.indexOf(type) === -1) return null;
+  if (ALLOWED_TYPES.indexOf(type) === -1) return { error: 'unknown type "' + type + '"' };
 
   const category = typeof raw.category === 'string' ? raw.category.trim() : '';
-  if (!category) return null;
+  if (!category) return { error: 'missing category' };
+  if (category.length > LIMITS.category) return { error: 'category too long' };
 
   if (type === 'flashcard') {
     const front = typeof raw.front === 'string' ? raw.front.trim() : '';
     const back = typeof raw.back === 'string' ? raw.back.trim() : '';
-    if (!front || !back) return null;
-    return { type, category, front, back };
+    if (!front || !back) return { error: 'flashcard missing front or back' };
+    if (front.length > LIMITS.text) return { error: 'front too long' };
+    if (back.length > LIMITS.short) return { error: 'back too long' };
+    return { card: { type, category, front, back } };
   }
 
   if (type === 'mcq') {
     const question = typeof raw.question === 'string' ? raw.question.trim() : '';
+    if (!question) return { error: 'mcq missing question' };
+    if (question.length > LIMITS.text) return { error: 'question too long' };
     const options = Array.isArray(raw.options)
       ? raw.options.map((o) => (typeof o === 'string' ? o.trim() : '')).filter(Boolean)
       : [];
+    if (options.length !== 4) return { error: 'mcq needs exactly 4 options, got ' + options.length };
+    if (options.some((o) => o.length > LIMITS.short)) return { error: 'option too long' };
     const correctIndex = Number.isInteger(raw.correctIndex) ? raw.correctIndex : -1;
-    if (!question || options.length < 2 || correctIndex < 0 || correctIndex >= options.length) return null;
-    return { type, category, question, options, correctIndex };
+    if (correctIndex < 0 || correctIndex >= options.length) return { error: 'invalid correctIndex' };
+    return { card: { type, category, question, options, correctIndex } };
   }
 
   if (type === 'fill_blank') {
     const sentence = typeof raw.sentence === 'string' ? raw.sentence.trim() : '';
     const answer = typeof raw.answer === 'string' ? raw.answer.trim() : '';
-    if (!sentence || sentence.indexOf('___') === -1 || !answer) return null;
-    return { type, category, sentence, answer };
+    if (!sentence || !answer) return { error: 'fill_blank missing sentence or answer' };
+    if (sentence.length > LIMITS.text) return { error: 'sentence too long' };
+    if (answer.length > LIMITS.short) return { error: 'answer too long' };
+    if (sentence.split('___').length - 1 !== 1) return { error: 'sentence must contain exactly one ___' };
+    return { card: { type, category, sentence, answer } };
   }
 
-  return null;
+  return { error: 'unreachable' };
 }
 
-async function generateCards({ apiKey, dumpText, existingCategories }) {
-  const err = validateRequest({ apiKey, dumpText });
-  if (err) return { statusCode: 400, error: err };
+function buildCorrection(failure) {
+  const reasons = Array.isArray(failure) && failure.length
+    ? failure.slice(0, MAX_CORRECTION_REASONS).map((r) => '- ' + r).join('\n')
+    : '';
+  return [
+    'Your previous response was rejected: it does not satisfy the schema and will NOT be used.',
+    reasons ? 'Rejected cards:\n' + reasons : 'Your previous response was not valid JSON.',
+    '',
+    'Return ONLY the complete corrected "cards" array as raw JSON matching the system prompt schema exactly.',
+    'Every card must pass all rules: mcq with exactly 4 options and a valid 0-based "correctIndex",',
+    'fill_blank with exactly one "___", front/question/sentence at most 120 chars, back/answer/option at most 80 chars,',
+    'category at most 40 chars, no duplicate cards.',
+    'No markdown fences, no text outside the JSON.'
+  ].join('\n');
+}
 
+async function callDeepSeek(apiKey, messages) {
   const response = await fetch(DEEPSEEK_URL, {
     method: 'POST',
     headers: {
@@ -102,10 +136,7 @@ async function generateCards({ apiKey, dumpText, existingCategories }) {
       model: MODEL,
       response_format: { type: 'json_object' },
       max_tokens: MAX_TOKENS,
-      messages: [
-        { role: 'system', content: buildSystemPrompt(existingCategories) },
-        { role: 'user', content: dumpText }
-      ]
+      messages
     })
   });
 
@@ -130,24 +161,69 @@ async function generateCards({ apiKey, dumpText, existingCategories }) {
     : null;
 
   if (!content || typeof content !== 'string') {
-    return { statusCode: 502, error: 'DeepSeek returned an empty response' };
+    return { statusCode: 200, cards: [], failure: ['response was empty'] };
   }
 
   let parsed;
   try {
     parsed = JSON.parse(content);
   } catch {
-    return { statusCode: 502, error: 'DeepSeek returned malformed JSON' };
+    return { statusCode: 200, cards: [], failure: ['response was not valid JSON'] };
   }
 
   const rawCards = parsed && Array.isArray(parsed.cards) ? parsed.cards : [];
-  const cards = rawCards.map(cleanCard).filter((c) => c !== null);
+  const cards = [];
+  const failure = [];
+  const seen = new Set();
 
-  if (cards.length === 0) {
-    return { statusCode: 502, error: 'No valid cards were generated; try splitting the text into smaller chunks' };
+  rawCards.forEach((raw, i) => {
+    const label = 'card ' + (i + 1);
+    const res = cleanCard(raw);
+    if (res.error) {
+      failure.push(label + ': ' + res.error);
+      return;
+    }
+    const key = res.card.front || res.card.question || res.card.sentence;
+    if (seen.has(key)) {
+      failure.push(label + ': duplicate of another card');
+      return;
+    }
+    seen.add(key);
+    cards.push(res.card);
+  });
+
+  if (failure.length > 0) {
+    return { statusCode: 200, cards, failure };
+  }
+  return { statusCode: 200, cards, failure: null };
+}
+
+async function generateCards({ apiKey, dumpText, existingCategories }) {
+  const err = validateRequest({ apiKey, dumpText });
+  if (err) return { statusCode: 400, error: err };
+
+  const systemPrompt = buildSystemPrompt(existingCategories);
+  let lastFailure = null;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: dumpText }
+    ];
+    if (attempt > 1 && lastFailure) {
+      messages.push({ role: 'user', content: buildCorrection(lastFailure) });
+    }
+
+    const result = await callDeepSeek(apiKey, messages);
+    if (result.failure) {
+      lastFailure = result.failure;
+      continue;
+    }
+    if (result.statusCode !== 200) return { statusCode: result.statusCode, error: result.error };
+    return { statusCode: 200, cards: result.cards };
   }
 
-  return { statusCode: 200, cards };
+  return { statusCode: 502, error: 'No valid cards were generated; try splitting the text into smaller chunks' };
 }
 
 module.exports = { generateCards, MAX_DUMP_CHARS };
