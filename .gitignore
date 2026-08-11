@@ -3,7 +3,8 @@ node_modules/
 *.log
 .DS_Store
 .env
-PLAN.md
-DESIGN.md
+*.md
+!README.md
 slimJim.html
 docs/
+tests/

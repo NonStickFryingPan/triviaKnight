@@ -4,7 +4,7 @@ const SheetsSync = (function () {
   const URL_KEY = 'tk_sheet_url';
   const TOKEN_KEY = 'tk_sheet_token';
   const LAST_SYNC_KEY = 'tk_sheet_last_sync';
-  const TIMEOUT_MS = 10000;
+  const TIMEOUT_MS = 60000;
 
   function isConfigured() {
     return !!Tk.storage.get(URL_KEY, '') && !!Tk.storage.get(TOKEN_KEY, '');
