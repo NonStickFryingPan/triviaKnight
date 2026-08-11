@@ -100,9 +100,21 @@ const SettingsView = (function () {
   }
 
   function syncCard() {
-    const card = Tk.el('div', { class: 'paper settings-card rot-1' }, [
-      Tk.el('h3', { text: 'Backup & Sync' }),
-      Tk.el('p', { class: 'hint', text: 'Sync between devices through your own Google Sheet. Pulls merge per card (newest wins); push overwrites the sheet; deleted cards can come back from it.' }),
+    const managed = LlmClient.keyManagedRemotely();
+    const fields = managed ? [
+      Tk.el('div', { class: 'row', style: 'margin-top:10px' }, [
+        Tk.el('span', { class: 'desc', text: 'Apps Script URL' }),
+        Tk.el('div', { class: 'ctrl' }, [
+          Tk.el('span', { class: 'tag', text: 'managed by passcode' })
+        ])
+      ]),
+      Tk.el('div', { class: 'row' }, [
+        Tk.el('span', { class: 'desc', text: 'Token' }),
+        Tk.el('div', { class: 'ctrl' }, [
+          Tk.el('span', { class: 'tag tag-yellow', text: 'managed by passcode' })
+        ])
+      ])
+    ] : [
       Tk.el('div', { style: 'display:flex;gap:10px;align-items:flex-end;margin-top:14px;flex-wrap:wrap' }, [
         Tk.el('div', { class: 'field', style: 'flex:1 1 320px;margin:0' }, [
           Tk.el('label', { text: 'Apps Script URL', for: 'sync-url' }),
@@ -132,14 +144,29 @@ const SettingsView = (function () {
             }
           })
         ])
-      ]),
-      Tk.el('div', { style: 'display:flex;gap:10px;margin-top:16px;flex-wrap:wrap' }, [
-        Tk.el('button', { class: 'btn btn-ghost btn-small', text: 'Pull now', id: 'sync-pull', onclick: onPull }, [Tk.icon('download', 15)]),
-        Tk.el('button', { class: 'btn btn-ghost btn-small', text: 'Push to sheet', id: 'sync-push', onclick: onPush }, [Tk.icon('upload', 15)])
-      ]),
+      ])
+    ];
+    const actions = [
+      Tk.el('button', { class: 'btn btn-ghost btn-small', text: 'Pull now', id: 'sync-pull', onclick: onPull }, [Tk.icon('download', 15)]),
+      Tk.el('button', { class: 'btn btn-ghost btn-small', text: 'Push to sheet', id: 'sync-push', onclick: onPush }, [Tk.icon('upload', 15)])
+    ];
+    if (managed) {
+      actions.push(Tk.el('button', { class: 'btn btn-ghost btn-small', text: 'Lock site', id: 'sync-lock', onclick: lockSite }, [Tk.icon('lock', 15)]));
+    }
+    const card = Tk.el('div', { class: 'paper settings-card rot-1' }, [
+      Tk.el('h3', { text: 'Backup & Sync' }),
+      Tk.el('p', { class: 'hint', text: 'Sync between devices through your own Google Sheet. Pulls merge per card (newest wins); push overwrites the sheet; deleted cards can come back from it.' }),
+      fields,
+      Tk.el('div', { style: 'display:flex;gap:10px;margin-top:16px;flex-wrap:wrap' }, actions),
       Tk.el('p', { class: 'hint', style: 'margin-top:12px', id: 'sync-last', text: 'Last synced: ' + formatLastSync(SheetsSync.lastSync()) })
     ]);
     return card;
+  }
+
+  function lockSite() {
+    LlmClient.lock();
+    toast('Locked — enter your passcode to reopen');
+    location.hash = '#/';
   }
 
   function formatLastSync(iso) {

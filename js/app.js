@@ -14,6 +14,17 @@
 
   function route() {
     const hash = location.hash.replace(/^#/, '');
+    if (LlmClient.isLocked()) {
+      viewEl.classList.add('home-route');
+      document.body.classList.add('is-home');
+      UnlockView.render(viewEl);
+      backLink(true);
+      window.scrollTo(0, 0);
+      viewEl.classList.remove('view-in');
+      void viewEl.offsetWidth;
+      viewEl.classList.add('view-in');
+      return;
+    }
     const fn = ROUTES[hash] || ROUTES[''];
     const isHome = fn === home;
     viewEl.classList.toggle('home-route', isHome);
@@ -92,16 +103,24 @@
     t._h = setTimeout(() => t.classList.add('hidden'), 3200);
   }
 
+  function autoPull() {
+    const hash = location.hash.replace(/^#/, '');
+    if (SheetsSync.isConfigured() && hash.slice(0, 7) !== '/review') {
+      SheetsSync.pull().then((res) => {
+        if (res.added || res.updated) toast('Pulled ' + res.added + ' new, ' + res.updated + ' updated');
+      }).catch((err) => toast(err.message, true));
+    }
+  }
+
   function init() {
     window.addEventListener('hashchange', route);
+    document.addEventListener('tk:unlocked', () => {
+      route();
+      autoPull();
+    });
     Db.initDB().then(() => {
       route();
-      const hash = location.hash.replace(/^#/, '');
-      if (SheetsSync.isConfigured() && hash.slice(0, 7) !== '/review') {
-        SheetsSync.pull().then((res) => {
-          if (res.added || res.updated) toast('Pulled ' + res.added + ' new, ' + res.updated + ' updated');
-        }).catch((err) => toast(err.message, true));
-      }
+      autoPull();
     }).catch((err) => {
       viewEl.innerHTML = '';
       viewEl.appendChild(Tk.el('p', { text: 'Could not open storage: ' + err.message }));

@@ -3,6 +3,16 @@
 const { generateCards } = require('../../shared/generateCardsHandler');
 
 exports.handler = async (event) => {
+  const pass = process.env.ACCESS_PASS || '';
+  if (!pass) {
+    return json(500, { error: 'ACCESS_PASS is not set in Netlify environment variables' });
+  }
+  const headers = event.headers || {};
+  const xpass = headers['x-pass'] || headers['X-Pass'] || '';
+  if (xpass !== pass) {
+    return json(401, { error: 'wrong passcode' });
+  }
+
   let body;
   try {
     body = JSON.parse(event.body || '{}');

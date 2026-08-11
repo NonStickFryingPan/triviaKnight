@@ -100,7 +100,8 @@ const Tk = {
     bolt: '<path d="M13 3L5 13h6l-1 8 8-10h-6z"/>',
     pen: '<path d="M4 20l1-4L16 5l3 3L8 19l-4 1zM13.5 7.5l3 3"/>',
     target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
-    helmet: '<path d="M5 12.5V9a7 7 0 0 1 14 0v3.5"/><path d="M7.5 11.5h9"/><path d="M12 9.5v7.5"/>'
+    helmet: '<path d="M5 12.5V9a7 7 0 0 1 14 0v3.5"/><path d="M7.5 11.5h9"/><path d="M12 9.5v7.5"/>',
+    lock: '<rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'
   },
 
   icon(name, size) {
@@ -128,6 +129,9 @@ const Tk = {
     },
     set(key, value) {
       try { localStorage.setItem(key, value); } catch {}
+    },
+    remove(key) {
+      try { localStorage.removeItem(key); } catch {}
     }
   }
 };
