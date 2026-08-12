@@ -132,7 +132,10 @@
       SettingsView: 'js/views/settingsView.js',
       UnlockView: 'js/views/unlockView.js'
     };
-    const missing = Object.keys(REQUIRED).filter((k) => typeof globalThis[k] === 'undefined');
+    const missing = Object.keys(REQUIRED).filter((k) => {
+      try { return typeof eval(k) === 'undefined'; }
+      catch (e) { return true; }
+    });
     if (missing.length > 0) {
       const files = missing.map((k) => REQUIRED[k]).join(', ');
       console.error('Failed to load scripts:', files);
