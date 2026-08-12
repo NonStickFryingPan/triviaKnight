@@ -9,8 +9,8 @@ const SettingsView = (function () {
     root.append(title, sub);
 
     const stack = Tk.el('div', { class: 'settings-stack' });
+    if (!LlmClient.keyManagedRemotely()) stack.append(apiCard());
     stack.append(
-      apiCard(),
       backupCard(),
       syncCard(),
       dailyCard(),
@@ -58,7 +58,6 @@ const SettingsView = (function () {
   function backupCard() {
     const card = Tk.el('div', { class: 'paper settings-card rot-1' }, [
       Tk.el('h3', { text: 'Backup' }),
-      Tk.el('p', { class: 'hint', text: 'Everything lives in this browser only — export a JSON file to be safe. (Included: scheduling state.)' }),
       Tk.el('div', { style: 'display:flex;gap:10px;margin-top:14px;flex-wrap:wrap' }, [
         Tk.el('button', { class: 'btn btn-ghost btn-small', text: 'Export backup', onclick: exportBackup }, [Tk.icon('download', 15)]),
         Tk.el('label', { class: 'btn btn-ghost btn-small', style: 'cursor:pointer;display:inline-flex;align-items:center;gap:9px' }, [
@@ -101,22 +100,7 @@ const SettingsView = (function () {
 
   function syncCard() {
     const managed = LlmClient.keyManagedRemotely();
-    const syncPending = !Tk.storage.get('tk_sheet_url', '') || !Tk.storage.get('tk_sheet_token', '');
-    const fields = managed ? [
-      Tk.el('div', { class: 'row', style: 'margin-top:10px' }, [
-        Tk.el('span', { class: 'desc', text: 'Apps Script URL' }),
-        Tk.el('div', { class: 'ctrl' }, [
-          Tk.el('span', { class: 'tag', text: syncPending ? 'not set on server' : 'managed by passcode' })
-        ])
-      ]),
-      Tk.el('div', { class: 'row' }, [
-        Tk.el('span', { class: 'desc', text: 'Token' }),
-        Tk.el('div', { class: 'ctrl' }, [
-          Tk.el('span', { class: 'tag tag-yellow', text: syncPending ? 'not set on server' : 'managed by passcode' })
-        ])
-      ]),
-      syncPending ? Tk.el('p', { class: 'hint', style: 'margin-top:10px', text: 'Set SHEET_URL and SHEET_TOKEN in Netlify environment variables, redeploy, then unlock again.' }) : null
-    ] : [
+    const fields = managed ? [] : [
       Tk.el('div', { style: 'display:flex;gap:10px;align-items:flex-end;margin-top:14px;flex-wrap:wrap' }, [
         Tk.el('div', { class: 'field', style: 'flex:1 1 320px;margin:0' }, [
           Tk.el('label', { text: 'Apps Script URL', for: 'sync-url' }),
@@ -155,32 +139,17 @@ const SettingsView = (function () {
     if (managed) {
       actions.push(Tk.el('button', { class: 'btn btn-ghost btn-small', text: 'Lock site', id: 'sync-lock', onclick: lockSite }, [Tk.icon('lock', 15)]));
     }
-    const card = Tk.el('div', { class: 'paper settings-card rot-1' }, [
-      Tk.el('h3', { text: 'Backup & Sync' }),
-      Tk.el('p', { class: 'hint', text: 'Sync between devices through your own Google Sheet. Pulls merge per card (newest wins); push overwrites the sheet; deleted cards can come back from it.' }),
+    return Tk.el('div', { class: 'paper settings-card rot-1' }, [
+      Tk.el('h3', { text: 'Sync' }),
       ...fields,
-      Tk.el('div', { style: 'display:flex;gap:10px;margin-top:16px;flex-wrap:wrap' }, actions),
-      Tk.el('p', { class: 'hint', style: 'margin-top:12px', id: 'sync-last', text: 'Last synced: ' + formatLastSync(SheetsSync.lastSync()) })
+      Tk.el('div', { style: 'display:flex;gap:10px;margin-top:16px;flex-wrap:wrap' }, actions)
     ]);
-    return card;
   }
 
   function lockSite() {
     LlmClient.lock();
     toast('Locked — enter your passcode to reopen');
     location.hash = '#/';
-  }
-
-  function formatLastSync(iso) {
-    if (!iso) return 'never';
-    const d = new Date(iso);
-    return isNaN(d.getTime()) ? iso : d.toLocaleString();
-  }
-
-  function refreshLastSync() {
-    const el = document.getElementById('sync-last');
-    if (!el) return;
-    el.textContent = 'Last synced: ' + formatLastSync(SheetsSync.lastSync());
   }
 
   function setBusy(which, busy) {
@@ -192,7 +161,6 @@ const SettingsView = (function () {
     setBusy('sync-pull', true);
     try {
       const res = await SheetsSync.pull();
-      refreshLastSync();
       if (res.added || res.updated) {
         toast('Pulled ' + res.added + ' new, ' + res.updated + ' updated');
         refreshStats();
@@ -215,7 +183,6 @@ const SettingsView = (function () {
         return;
       }
       const res = await SheetsSync.push();
-      refreshLastSync();
       toast('Pushed ' + res.count + ' cards');
     } catch (err) {
       toast(err.message, true);
