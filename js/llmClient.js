@@ -3,7 +3,7 @@
 const LlmClient = (function () {
   const API_KEY_KEY = 'dsk_api_key';
   const PASS_KEY = 'tk_site_pass';
-  const CHUNK_SIZE = 6000;
+  const CHUNK_SIZE = 3000;
   const IS_LOCAL = typeof location !== 'undefined' &&
     (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
   const API_ENDPOINT = IS_LOCAL
