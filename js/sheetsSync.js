@@ -78,6 +78,25 @@ const SheetsSync = (function () {
     }));
   }
 
+  // push the whole deck only if something changed since the last sync;
+  // swallows failures so callers (dump save, quiz end) are never blocked
+  function pushIfDirty() {
+    if (!isConfigured()) return Promise.resolve(false);
+    return Db.getAllCards().then((cards) => {
+      if (cards.length === 0) return false;
+      const last = Tk.storage.get(LAST_SYNC_KEY, '');
+      const newest = cards.reduce((m, c) => {
+        const t = Date.parse(cardTs(c));
+        return Number.isNaN(t) ? m : Math.max(m, t);
+      }, 0);
+      if (!last || newest <= Date.parse(last)) return false;
+      return push().then(() => true);
+    }).catch((err) => {
+      console.error('Auto-sync push failed:', err);
+      return false;
+    });
+  }
+
   // remote timestamp only; cards are discarded
   function remoteStatus() {
     return call({ op: 'pull' }).then((data) => (typeof data.remoteTs === 'string' ? data.remoteTs : ''));
@@ -88,7 +107,7 @@ const SheetsSync = (function () {
   }
 
   return {
-    isConfigured, pull, push, remoteStatus, lastSync, mergeDecks
+    isConfigured, pull, push, pushIfDirty, remoteStatus, lastSync, mergeDecks
   };
 })();
 

@@ -233,6 +233,7 @@ const ReviewView = (function () {
   }
 
   function renderSummary(root) {
+    SheetsSync.pushIfDirty();
     const total = session.queue.length;
     const pct = total === 0 ? 0 : Math.round((session.correct / total) * 100);
     const box = Tk.el('div', { class: 'paper summary-box' }, [

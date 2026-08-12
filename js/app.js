@@ -27,7 +27,7 @@
     if (viewLoads.has(file)) return viewLoads.get(file);
     const p = new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = file + '?v=20260813';
+      s.src = file + '?v=20260814';
       s.onload = () => {
         loadedViews.add(file);
         viewLoads.delete(file);

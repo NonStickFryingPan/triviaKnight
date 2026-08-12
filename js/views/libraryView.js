@@ -204,6 +204,7 @@ const LibraryView = (function () {
         card = { type, category: cat, sentence: v1, answer: v2 };
       }
       await Db.addCard(card);
+      SheetsSync.pushIfDirty();
       state.showAdd = false;
       render(document.getElementById('view'));
       toast('Card added');

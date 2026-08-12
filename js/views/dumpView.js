@@ -204,6 +204,7 @@ const DumpView = (function () {
     }
     state = { stage: 'input', cards: [] };
     render(document.getElementById('view'));
+    if (saved > 0) SheetsSync.pushIfDirty();
     toast('Saved ' + saved + ' card' + (saved === 1 ? '' : 's') + (failed > 0 ? ', ' + failed + ' failed' : ''));
   }
 
