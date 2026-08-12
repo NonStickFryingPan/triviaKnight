@@ -12,9 +12,47 @@
 
   const viewEl = document.getElementById('view');
 
-  function route() {
+  const VIEW_FILES = {
+    '/dump': 'js/views/dumpView.js',
+    '/review': 'js/views/reviewView.js',
+    '/library': 'js/views/libraryView.js',
+    '/settings': 'js/views/settingsView.js',
+    'unlock': 'js/views/unlockView.js'
+  };
+  const loadedViews = new Set();
+  const viewLoads = new Map();
+
+  function ensureView(file) {
+    if (loadedViews.has(file)) return Promise.resolve();
+    if (viewLoads.has(file)) return viewLoads.get(file);
+    const p = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = file + '?v=20260813';
+      s.onload = () => {
+        loadedViews.add(file);
+        viewLoads.delete(file);
+        resolve();
+      };
+      s.onerror = () => {
+        viewLoads.delete(file);
+        reject(new Error('Failed to load ' + file));
+      };
+      document.head.appendChild(s);
+    });
+    viewLoads.set(file, p);
+    return p;
+  }
+
+  async function route() {
     const hash = location.hash.replace(/^#/, '');
     if (LlmClient.isLocked()) {
+      try {
+        await ensureView(VIEW_FILES['unlock']);
+      } catch (err) {
+        console.error('Failed to load unlock view:', err);
+        toast(err.message, true);
+        return;
+      }
       viewEl.classList.add('home-route');
       document.body.classList.add('is-home');
       UnlockView.render(viewEl);
@@ -25,11 +63,21 @@
       viewEl.classList.add('view-in');
       return;
     }
+    const f = VIEW_FILES[hash];
+    if (f) {
+      try {
+        await ensureView(f);
+      } catch (err) {
+        console.error('Failed to load view:', err);
+        toast(err.message, true);
+        return;
+      }
+    }
     const fn = ROUTES[hash] || ROUTES[''];
     const isHome = fn === home;
     viewEl.classList.toggle('home-route', isHome);
     document.body.classList.toggle('is-home', isHome);
-    if (hash !== '/review') ReviewView.reset();
+    if (hash !== '/review' && typeof ReviewView !== 'undefined') ReviewView.reset();
     try {
       fn();
     } catch (err) {
@@ -125,17 +173,9 @@
       Db: 'js/db.js',
       CardTypes: 'js/cardTypes.js',
       LlmClient: 'js/llmClient.js',
-      SheetsSync: 'js/sheetsSync.js',
-      DumpView: 'js/views/dumpView.js',
-      ReviewView: 'js/views/reviewView.js',
-      LibraryView: 'js/views/libraryView.js',
-      SettingsView: 'js/views/settingsView.js',
-      UnlockView: 'js/views/unlockView.js'
+      SheetsSync: 'js/sheetsSync.js'
     };
-    const missing = Object.keys(REQUIRED).filter((k) => {
-      try { return typeof eval(k) === 'undefined'; }
-      catch (e) { return true; }
-    });
+    const missing = Object.keys(REQUIRED).filter((k) => typeof globalThis[k] === 'undefined');
     if (missing.length > 0) {
       const files = missing.map((k) => REQUIRED[k]).join(', ');
       console.error('Failed to load scripts:', files);
@@ -160,9 +200,19 @@
       autoPull();
     });
     Db.initDB().catch((err) => {
+      console.error('Storage failed to open:', err);
       viewEl.innerHTML = '';
       try {
-        viewEl.appendChild(Tk.el('p', { text: 'Could not open storage: ' + ((err && err.message) ? err.message : String(err)) }));
+        const box = document.createElement('div');
+        box.className = 'paper';
+        box.style.cssText = 'padding:40px;text-align:center;max-width:520px;margin:40px auto';
+        const h = document.createElement('h2');
+        h.textContent = "Storage couldn't open";
+        const p = document.createElement('p');
+        p.textContent = 'The app database failed to open — private browsing blocks IndexedDB and storage may be full.';
+        const retry = Tk.el('button', { class: 'btn btn-primary', style: 'margin-top:16px', text: 'Reload', onclick: () => location.reload() });
+        box.append(h, p, retry);
+        viewEl.appendChild(box);
       } catch (renderErr) {
         console.error('Storage error page failed to render:', renderErr);
       }

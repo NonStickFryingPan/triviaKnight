@@ -153,4 +153,5 @@ const Tk = {
   }
 };
 
+if (typeof globalThis !== 'undefined') globalThis.Tk = Tk;
 if (typeof module !== 'undefined') module.exports = Tk;

@@ -92,4 +92,5 @@ const SheetsSync = (function () {
   };
 })();
 
+if (typeof globalThis !== 'undefined') globalThis.SheetsSync = SheetsSync;
 if (typeof module !== 'undefined') module.exports = SheetsSync;

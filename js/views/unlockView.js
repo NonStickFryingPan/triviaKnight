@@ -57,3 +57,5 @@ const UnlockView = (function () {
 
   return { render };
 })();
+
+if (typeof globalThis !== 'undefined') globalThis.UnlockView = UnlockView;

@@ -116,4 +116,5 @@ const LlmClient = (function () {
   return { getApiKey, setApiKey, hasApiKey, keyManagedRemotely, generateCards, getPass, setPass, isLocked, lock, login };
 })();
 
+if (typeof globalThis !== 'undefined') globalThis.LlmClient = LlmClient;
 if (typeof module !== 'undefined') module.exports = LlmClient;

@@ -19,6 +19,11 @@ const MIME = {
 };
 
 function serveStatic(req, res, urlPath) {
+  if (urlPath.split('/').some((seg) => seg.startsWith('.'))) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('Forbidden');
+    return;
+  }
   let filePath = path.normalize(path.join(ROOT, urlPath));
   if (!filePath.startsWith(ROOT)) {
     res.writeHead(403, { 'Content-Type': 'text/plain' });
@@ -69,7 +74,14 @@ http.createServer(async (req, res) => {
   }
 
   if (req.method === 'GET') {
-    const urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
+    let urlPath;
+    try {
+      urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
+    } catch {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Malformed URL' }));
+      return;
+    }
     serveStatic(req, res, urlPath);
     return;
   }

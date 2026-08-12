@@ -1,9 +1,28 @@
 'use strict';
 
+const crypto = require('crypto');
+const { createRateLimiter } = require('./_rateLimit');
+
+const rateLimit = createRateLimiter({ hourly: 20, daily: 100 });
+
+// sha256 both sides, then constant-time compare of the digests
+function safeEqual(a, b) {
+  const ha = crypto.createHash('sha256').update(a, 'utf8').digest();
+  const hb = crypto.createHash('sha256').update(b, 'utf8').digest();
+  return crypto.timingSafeEqual(ha, hb);
+}
+
 exports.handler = async (event) => {
   const pass = process.env.ACCESS_PASS || '';
   if (!pass) {
     return json(500, { error: 'ACCESS_PASS is not set in Netlify environment variables' });
+  }
+
+  const headers = event.headers || {};
+  const ip = (headers['x-forwarded-for'] || headers['client-ip'] || '').split(',')[0].trim();
+  const limit = rateLimit(ip);
+  if (!limit.ok) {
+    return json(429, { error: 'Rate limit exceeded, try again later' });
   }
 
   let body;
@@ -14,7 +33,7 @@ exports.handler = async (event) => {
   }
 
   const secret = (typeof body.password === 'string' && body.password) || '';
-  if (!secret || secret !== pass) {
+  if (!secret || !safeEqual(secret, pass)) {
     return json(401, { error: 'wrong passcode' });
   }
 

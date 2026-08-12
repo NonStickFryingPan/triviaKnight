@@ -126,4 +126,5 @@ const Scheduler = (function () {
   return { schedule, initialFields, configure };
 })();
 
+if (typeof globalThis !== 'undefined') globalThis.Scheduler = Scheduler;
 if (typeof module !== 'undefined') module.exports = Scheduler;

@@ -277,3 +277,5 @@ const SettingsView = (function () {
 
   return { render };
 })();
+
+if (typeof globalThis !== 'undefined') globalThis.SettingsView = SettingsView;

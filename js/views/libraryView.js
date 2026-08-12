@@ -235,3 +235,5 @@ const LibraryView = (function () {
 
   return { render };
 })();
+
+if (typeof globalThis !== 'undefined') globalThis.LibraryView = LibraryView;

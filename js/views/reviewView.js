@@ -269,3 +269,5 @@ const ReviewView = (function () {
 
   return { render, reset };
 })();
+
+if (typeof globalThis !== 'undefined') globalThis.ReviewView = ReviewView;

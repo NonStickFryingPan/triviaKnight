@@ -1,6 +1,9 @@
 'use strict';
 
 const { generateCards } = require('../../shared/generateCardsHandler');
+const { createRateLimiter } = require('./_rateLimit');
+
+const rateLimit = createRateLimiter({ hourly: 60, daily: 300 });
 
 exports.handler = async (event) => {
   const pass = process.env.ACCESS_PASS || '';
@@ -11,6 +14,12 @@ exports.handler = async (event) => {
   const xpass = headers['x-pass'] || headers['X-Pass'] || '';
   if (xpass !== pass) {
     return json(401, { error: 'wrong passcode' });
+  }
+
+  const ip = (headers['x-forwarded-for'] || headers['client-ip'] || '').split(',')[0].trim();
+  const limit = rateLimit(ip);
+  if (!limit.ok) {
+    return json(429, { error: 'Rate limit exceeded, try again later' });
   }
 
   let body;
@@ -33,7 +42,8 @@ exports.handler = async (event) => {
       existingCategories: Array.isArray(body.existingCategories) ? body.existingCategories : []
     });
   } catch (err) {
-    return json(502, { error: 'Upstream request failed: ' + err.message });
+    console.error('generate-cards upstream error:', err.message);
+    return json(502, { error: 'Upstream request failed' });
   }
 
   return json(

@@ -69,3 +69,5 @@ const CardTypes = (function () {
 
   return { TYPES, render, grade, reveal, typeLabel };
 })();
+
+if (typeof globalThis !== 'undefined') globalThis.CardTypes = CardTypes;

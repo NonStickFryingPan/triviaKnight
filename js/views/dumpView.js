@@ -218,3 +218,5 @@ const DumpView = (function () {
 
   return { render };
 })();
+
+if (typeof globalThis !== 'undefined') globalThis.DumpView = DumpView;
