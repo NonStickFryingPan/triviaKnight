@@ -2,7 +2,7 @@
 
 const Db = (function () {
   const DB_NAME = 'triviaKnight';
-  const DB_VERSION = 3;
+  const DB_VERSION = 4;
   const STORE = 'cards';
   const LOG_STORE = 'review_logs';
 
@@ -13,6 +13,7 @@ const Db = (function () {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onupgradeneeded = (e) => {
         const db = e.target.result;
+        const vtx = req.transaction;
         if (!db.objectStoreNames.contains(STORE)) {
           const store = db.createObjectStore(STORE, { keyPath: 'id' });
           store.createIndex('dueDate', 'dueDate');
@@ -21,12 +22,13 @@ const Db = (function () {
         if (!db.objectStoreNames.contains(LOG_STORE)) {
           const store = db.createObjectStore(LOG_STORE, { keyPath: 'id' });
           store.createIndex('cardId', 'cardId');
-        } else if (!db.transaction(LOG_STORE).objectStore(LOG_STORE).indexNames.contains('cardId')) {
-          db.transaction(LOG_STORE).objectStore(LOG_STORE).createIndex('cardId', 'cardId');
+        } else if (!vtx.objectStore(LOG_STORE).indexNames.contains('cardId')) {
+          vtx.objectStore(LOG_STORE).createIndex('cardId', 'cardId');
         }
-        // pre-v3 logs were written from a buggy call and are character-indexed garbage
-        if (e.oldVersion < 3 && db.objectStoreNames.contains(LOG_STORE)) {
-          db.transaction(LOG_STORE).objectStore(LOG_STORE).clear();
+        // pre-v4 logs are character-indexed garbage (or fresh-install leftovers);
+        // clearing them during the versionchange transaction is always safe
+        if (e.oldVersion < 4 && db.objectStoreNames.contains(LOG_STORE)) {
+          vtx.objectStore(LOG_STORE).clear();
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -179,4 +181,5 @@ const Db = (function () {
   };
 })();
 
+if (typeof globalThis !== 'undefined') globalThis.Db = Db;
 if (typeof module !== 'undefined') module.exports = Db;
