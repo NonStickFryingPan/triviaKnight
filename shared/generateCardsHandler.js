@@ -3,7 +3,7 @@
 const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
 const MODEL = 'deepseek-v4-flash';
 const MAX_DUMP_CHARS = 20000;
-const MAX_TOKENS = 2000;
+const MAX_TOKENS = 8192;
 const MAX_ATTEMPTS = 2;
 const MAX_CORRECTION_REASONS = 6;
 const ALLOWED_TYPES = ['flashcard', 'mcq', 'fill_blank'];
@@ -204,6 +204,7 @@ async function generateCards({ apiKey, dumpText, existingCategories }) {
 
   const systemPrompt = buildSystemPrompt(existingCategories);
   let lastFailure = null;
+  let fallback = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const messages = [
@@ -217,12 +218,16 @@ async function generateCards({ apiKey, dumpText, existingCategories }) {
     const result = await callDeepSeek(apiKey, messages);
     if (result.failure) {
       lastFailure = result.failure;
+      if (result.cards.length > 0) fallback = { cards: result.cards, skipped: result.failure.length };
       continue;
     }
     if (result.statusCode !== 200) return { statusCode: result.statusCode, error: result.error };
     return { statusCode: 200, cards: result.cards };
   }
 
+  if (fallback) {
+    return { statusCode: 200, cards: fallback.cards, skipped: fallback.skipped };
+  }
   return { statusCode: 502, error: 'No valid cards were generated; try splitting the text into smaller chunks' };
 }
 

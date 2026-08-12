@@ -54,7 +54,7 @@ const DumpView = (function () {
     return Tk.el('div', { class: 'paper dump-box' }, [
       Tk.el('div', { class: 'loader-row' }, [
         Tk.el('div', { class: 'stamp-spin', text: 'k' }),
-        Tk.el('span', { text: 'Sharpening the pencil… turning your notes into cards' })
+        Tk.el('span', { id: 'gen-progress', text: 'Sharpening the pencil… turning your notes into cards' })
       ])
     ]);
   }
@@ -151,13 +151,24 @@ const DumpView = (function () {
     const text = document.getElementById('dump-text');
     const dumpText = (text && text.value || '').trim();
     if (!dumpText) { toast('Nothing to generate — paste some facts first', true); return; }
+    if (dumpText.length < 15) { toast('That\'s too short to turn into cards — paste a bit more', true); return; }
     state.stage = 'loading';
     render(document.getElementById('view'));
     try {
       const cats = await Db.getCategories();
-      const cards = await LlmClient.generateCards(dumpText, cats);
-      state = { stage: 'preview', cards };
+      const res = await LlmClient.generateCards(dumpText, cats, (chunk, total, made) => {
+        const el = document.getElementById('gen-progress');
+        if (!el) return;
+        el.textContent = total > 1
+          ? 'Sharpening the pencil… part ' + chunk + ' of ' + total + (made > 0 ? ' (' + made + ' card' + (made === 1 ? '' : 's') + ' so far)' : '')
+          : 'Sharpening the pencil… turning your notes into cards';
+      });
+      state = { stage: 'preview', cards: res.cards };
       render(document.getElementById('view'));
+      const notes = [];
+      if (res.skipped > 0) notes.push('skipped ' + res.skipped + ' card' + (res.skipped === 1 ? '' : 's'));
+      if (res.failedChunks > 0) notes.push(res.failedChunks + ' of ' + res.chunks + ' part' + (res.failedChunks === 1 ? '' : 's') + ' failed');
+      if (notes.length > 0) toast(notes.join(' — ') + ' — the rest are ready', true);
     } catch (err) {
       state = { stage: 'input', cards: [] };
       render(document.getElementById('view'));
@@ -174,12 +185,20 @@ const DumpView = (function () {
       return false;
     });
     if (valid.length === 0) { toast('No complete cards to save', true); return; }
+    let saved = 0;
+    let failed = 0;
     for (const card of valid) {
-      await Db.addCard(card);
+      try {
+        await Db.addCard(card);
+        saved++;
+      } catch (err) {
+        failed++;
+        console.error('Card save failed:', err);
+      }
     }
     state = { stage: 'input', cards: [] };
     render(document.getElementById('view'));
-    toast('Saved ' + valid.length + ' card' + (valid.length === 1 ? '' : 's'));
+    toast('Saved ' + saved + ' card' + (saved === 1 ? '' : 's') + (failed > 0 ? ', ' + failed + ' failed' : ''));
   }
 
   function toast(msg, err) {

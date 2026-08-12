@@ -1,7 +1,11 @@
 'use strict';
 
 if (typeof FSRS === 'undefined') {
-  var FSRS = require('./vendor/ts-fsrs.js'); // eslint-disable-line no-var
+  if (typeof require === 'function') {
+    var FSRS = require('./vendor/ts-fsrs.js'); // eslint-disable-line no-var
+  } else {
+    throw new Error('FSRS library failed to load (js/vendor/ts-fsrs.js)');
+  }
 }
 
 const Scheduler = (function () {

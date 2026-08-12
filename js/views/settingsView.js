@@ -261,7 +261,7 @@ const SettingsView = (function () {
     const cards = await Db.getAllCards();
     const line = document.getElementById('stat-line');
     if (!line) return;
-    const due = cards.filter((c) => c.dueDate <= new Date().toISOString()).length;
+    const due = await Db.getDueCount();
     const cats = new Set(cards.map((c) => c.category)).size;
     line.textContent = cards.length + ' cards, ' + cats + ' categories, ' + due + ' due today.';
   }

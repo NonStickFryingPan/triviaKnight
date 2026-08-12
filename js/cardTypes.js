@@ -1,9 +1,5 @@
 'use strict';
 
-if (typeof module !== 'undefined') {
-  var Tk = require('./utils.js'); // eslint-disable-line no-var
-}
-
 const CardTypes = (function () {
   const TYPES = ['flashcard', 'mcq', 'fill_blank'];
 
@@ -73,5 +69,3 @@ const CardTypes = (function () {
 
   return { TYPES, render, grade, reveal, typeLabel };
 })();
-
-if (typeof module !== 'undefined') module.exports = CardTypes;

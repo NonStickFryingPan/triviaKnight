@@ -47,6 +47,7 @@ const LibraryView = (function () {
     let cards = await Db.getAllCards();
     const cats = await Db.getCategories();
     const sel = root.querySelector('select');
+    if (state.category && cats.indexOf(state.category) === -1) state.category = '';
     const current = state.category;
     sel.innerHTML = '';
     sel.appendChild(Tk.el('option', { value: '', text: 'All categories' }));

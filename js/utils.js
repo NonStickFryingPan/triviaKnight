@@ -64,6 +64,23 @@ const Tk = {
     return false;
   },
 
+  splitIntoChunks(text, maxChars) {
+    const chunks = [];
+    let rest = String(text || '').trim();
+    const limit = Math.max(2, maxChars | 0);
+    while (rest.length > limit) {
+      let cut = rest.lastIndexOf('. ', limit);
+      let include = 2;
+      if (cut <= 1) { cut = rest.lastIndexOf('\n', limit); include = 1; }
+      if (cut <= 1) { cut = rest.lastIndexOf(' ', limit); include = 1; }
+      if (cut <= 1) { cut = limit; include = 0; }
+      chunks.push(rest.slice(0, cut + include).trim());
+      rest = rest.slice(cut + include).trim();
+    }
+    if (rest) chunks.push(rest);
+    return chunks.filter((c) => c.length > 0);
+  },
+
   el(tag, attrs, children) {
     const node = document.createElement(tag);
     if (attrs) {

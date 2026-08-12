@@ -30,7 +30,12 @@
     viewEl.classList.toggle('home-route', isHome);
     document.body.classList.toggle('is-home', isHome);
     if (hash !== '/review') ReviewView.reset();
-    fn();
+    try {
+      fn();
+    } catch (err) {
+      console.error('Route render failed:', err);
+      toast((err && err.message) ? err.message : String(err), true);
+    }
     backLink(isHome);
     window.scrollTo(0, 0);
     viewEl.classList.remove('view-in');
@@ -113,6 +118,39 @@
   }
 
   function init() {
+    const REQUIRED = {
+      Tk: 'js/utils.js',
+      FSRS: 'js/vendor/ts-fsrs.js',
+      Scheduler: 'js/scheduler.js',
+      Db: 'js/db.js',
+      CardTypes: 'js/cardTypes.js',
+      LlmClient: 'js/llmClient.js',
+      SheetsSync: 'js/sheetsSync.js',
+      DumpView: 'js/views/dumpView.js',
+      ReviewView: 'js/views/reviewView.js',
+      LibraryView: 'js/views/libraryView.js',
+      SettingsView: 'js/views/settingsView.js',
+      UnlockView: 'js/views/unlockView.js'
+    };
+    const missing = Object.keys(REQUIRED).filter((k) => typeof globalThis[k] === 'undefined');
+    if (missing.length > 0) {
+      const files = missing.map((k) => REQUIRED[k]).join(', ');
+      console.error('Failed to load scripts:', files);
+      viewEl.innerHTML = '';
+      const box = document.createElement('div');
+      box.className = 'paper';
+      box.style.cssText = 'padding:40px;text-align:center;max-width:520px;margin:40px auto';
+      const h = document.createElement('h2');
+      h.textContent = 'Something went wrong';
+      const p = document.createElement('p');
+      p.textContent = 'Some app files failed to load: ' + files;
+      const hint = document.createElement('p');
+      hint.className = 'hint';
+      hint.textContent = 'Hard refresh (Ctrl+Shift+R) — if it persists, a browser extension is likely interfering.';
+      box.append(h, p, hint);
+      viewEl.appendChild(box);
+      return;
+    }
     window.addEventListener('hashchange', route);
     document.addEventListener('tk:unlocked', () => {
       route();

@@ -4,7 +4,7 @@
  * Source: https://github.com/open-spaced-repetition/ts-fsrs
  * Vendored verbatim from the official npm package (dist/index.umd.js, global: FSRS).
  */(function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+  typeof exports === 'object' && typeof module !== 'undefined' && typeof require === 'function' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.FSRS = {}));
 })(this, (function (exports) { 'use strict';

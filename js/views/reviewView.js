@@ -158,9 +158,9 @@ const ReviewView = (function () {
       .then(() => {
         const correctText = CardTypes.reveal(card);
         if (correctText) {
-          Array.from(opts.children).forEach((btn) => {
-            if (btn.textContent.indexOf(correctText) !== -1) btn.classList.add('correct');
-          });
+          const target = viewData.options.indexOf(correctText);
+          const btns = Array.from(opts.children);
+          if (target >= 0 && btns[target]) btns[target].classList.add('correct');
         }
         const wrap = Tk.el('div', { style: 'text-align:center;margin-top:6px' }, [
           Tk.el('div', { class: 'feedback ' + (res.correct ? 'ok' : 'bad'), text: res.correct ? 'Correct' : 'Not quite' }),
@@ -223,7 +223,7 @@ const ReviewView = (function () {
     persisting.add(card);
     const next = Scheduler.schedule(card, ratingKey);
     Object.assign(card, next, { lastReviewed: next.lastReviewed });
-    await Db.addReviewLog(card.id, next.lastLog);
+    await Db.addReviewLog(Object.assign({ cardId: card.id }, next.lastLog));
     await Db.updateCard(card);
   }
 

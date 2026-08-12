@@ -3,6 +3,7 @@
 const LlmClient = (function () {
   const API_KEY_KEY = 'dsk_api_key';
   const PASS_KEY = 'tk_site_pass';
+  const CHUNK_SIZE = 9000;
   const IS_LOCAL = typeof location !== 'undefined' &&
     (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
   const API_ENDPOINT = IS_LOCAL
@@ -65,7 +66,7 @@ const LlmClient = (function () {
     }));
   }
 
-  async function generateCards(dumpText, existingCategories) {
+  function callOnce(dumpText, existingCategories) {
     const apiKey = getApiKey();
     if (IS_LOCAL && !apiKey) {
       throw new Error('No API key saved. Add it in Settings first.');
@@ -74,25 +75,42 @@ const LlmClient = (function () {
     if (!IS_LOCAL) headers['x-pass'] = getPass();
     const payload = { dumpText, existingCategories: existingCategories || [] };
     if (apiKey) payload.apiKey = apiKey;
-    const res = await fetch(API_ENDPOINT, {
+    return fetch(API_ENDPOINT, {
       method: 'POST',
       headers,
       body: JSON.stringify(payload)
+    }).then((res) => res.json().catch(() => null)).then((data) => {
+      const ok = data && data.cards !== undefined;
+      const failed = data && data.error;
+      if (ok && Array.isArray(data.cards)) {
+        return {
+          cards: data.cards,
+          skipped: typeof data.skipped === 'number' ? data.skipped : 0
+        };
+      }
+      throw new Error((failed || 'Request failed') + (data ? '' : ' (unreadable response)'));
     });
-    let data = null;
-    try {
-      data = await res.json();
-    } catch {}
-    if (!res.ok) {
-      throw new Error((data && data.error) || 'Request failed (HTTP ' + res.status + ')');
+  }
+
+  async function generateCards(dumpText, existingCategories, onProgress) {
+    const chunks = Tk.splitIntoChunks(dumpText, CHUNK_SIZE);
+    const all = [];
+    let skipped = 0;
+    const errors = [];
+    for (let i = 0; i < chunks.length; i++) {
+      if (onProgress) onProgress(i + 1, chunks.length, all.length);
+      try {
+        const res = await callOnce(chunks[i], existingCategories);
+        all.push(...res.cards);
+        skipped += res.skipped;
+      } catch (err) {
+        errors.push((err && err.message) || String(err));
+      }
     }
-    if (data && data.error) {
-      throw new Error(data.error);
+    if (all.length === 0 && errors.length > 0) {
+      throw new Error(errors[0]);
     }
-    if (!data || !Array.isArray(data.cards)) {
-      throw new Error('Unexpected response from server');
-    }
-    return data.cards;
+    return { cards: all, skipped, chunks: chunks.length, failedChunks: errors.length };
   }
 
   return { getApiKey, setApiKey, hasApiKey, keyManagedRemotely, generateCards, getPass, setPass, isLocked, lock, login };

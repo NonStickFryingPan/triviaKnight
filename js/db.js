@@ -2,7 +2,7 @@
 
 const Db = (function () {
   const DB_NAME = 'triviaKnight';
-  const DB_VERSION = 2;
+  const DB_VERSION = 3;
   const STORE = 'cards';
   const LOG_STORE = 'review_logs';
 
@@ -19,7 +19,14 @@ const Db = (function () {
           store.createIndex('category', 'category');
         }
         if (!db.objectStoreNames.contains(LOG_STORE)) {
-          db.createObjectStore(LOG_STORE, { keyPath: 'id' });
+          const store = db.createObjectStore(LOG_STORE, { keyPath: 'id' });
+          store.createIndex('cardId', 'cardId');
+        } else if (!db.transaction(LOG_STORE).objectStore(LOG_STORE).indexNames.contains('cardId')) {
+          db.transaction(LOG_STORE).objectStore(LOG_STORE).createIndex('cardId', 'cardId');
+        }
+        // pre-v3 logs were written from a buggy call and are character-indexed garbage
+        if (e.oldVersion < 3 && db.objectStoreNames.contains(LOG_STORE)) {
+          db.transaction(LOG_STORE).objectStore(LOG_STORE).clear();
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -86,7 +93,18 @@ const Db = (function () {
   }
 
   function deleteCard(id) {
-    return txCards('readwrite', (store) => store.delete(id));
+    return dbPromise.then((db) => new Promise((resolve, reject) => {
+      const t = db.transaction([STORE, LOG_STORE], 'readwrite');
+      t.objectStore(STORE).delete(id);
+      const logKeys = t.objectStore(LOG_STORE).index('cardId').getAllKeys(id);
+      logKeys.onsuccess = () => {
+        const store = t.objectStore(LOG_STORE);
+        (logKeys.result || []).forEach((k) => store.delete(k));
+      };
+      t.oncomplete = () => resolve();
+      t.onerror = () => reject(t.error);
+      t.onabort = () => reject(t.error);
+    }));
   }
 
   function getAllCards() {
@@ -146,14 +164,18 @@ const Db = (function () {
     }).then(() => {});
   }
 
+  function getDueCount() {
+    return getDueCards(new Date().toISOString()).then((cards) => cards.length);
+  }
+
   function addReviewLog(log) {
-    const record = Object.assign({ id: crypto.randomUUID() }, log);
+    const record = Object.assign({ id: crypto.randomUUID(), cardId: '' }, log, { cardId: log.cardId || '' });
     return tx(LOG_STORE, 'readwrite', (store) => store.put(record)).then(() => record);
   }
 
   return {
     initDB, addCard, getCard, updateCard, putCard, deleteCard,
-    getAllCards, getDueCards, getCategories, exportAll, importAll, addReviewLog
+    getAllCards, getDueCards, getDueCount, getCategories, exportAll, importAll, addReviewLog
   };
 })();
 
