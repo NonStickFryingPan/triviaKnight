@@ -176,6 +176,10 @@ async function callDeepSeek(apiKey, messages) {
   const failure = [];
   const seen = new Set();
 
+  if (rawCards.length === 0) {
+    return { statusCode: 200, cards: [], failure: ['response contained no cards'] };
+  }
+
   rawCards.forEach((raw, i) => {
     const label = 'card ' + (i + 1);
     const res = cleanCard(raw);

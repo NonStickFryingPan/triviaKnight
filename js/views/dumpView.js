@@ -165,6 +165,12 @@ const DumpView = (function () {
       });
       state = { stage: 'preview', cards: res.cards };
       render(document.getElementById('view'));
+      if (res.cards.length === 0 && res.failedChunks === 0) {
+        state = { stage: 'input', cards: [] };
+        render(document.getElementById('view'));
+        toast('No cards could be generated — try rephrasing or shorter text', true);
+        return;
+      }
       const notes = [];
       if (res.skipped > 0) notes.push('skipped ' + res.skipped + ' card' + (res.skipped === 1 ? '' : 's'));
       if (res.failedChunks > 0) notes.push(res.failedChunks + ' of ' + res.chunks + ' part' + (res.failedChunks === 1 ? '' : 's') + ' failed');
