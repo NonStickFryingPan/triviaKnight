@@ -9,6 +9,15 @@ const Tk = {
     return new Date().toISOString();
   },
 
+  KEYS: {
+    apiKey: 'dsk_api_key',
+    pass: 'tk_site_pass',
+    sheetUrl: 'tk_sheet_url',
+    sheetToken: 'tk_sheet_token',
+    lastSync: 'tk_sheet_last_sync',
+    newPerDay: 'dsk_new_per_day'
+  },
+
   addDays(base, days) {
     const d = base instanceof Date ? new Date(base.getTime()) : new Date(base);
     d.setDate(d.getDate() + days);
@@ -136,6 +145,37 @@ const Tk = {
     svg.innerHTML = Tk.ICONS[name] || '';
     return svg;
   },
+
+  toast(msg, err) {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.toggle('err', !!err);
+    t.classList.remove('hidden');
+    clearTimeout(t._h);
+    t._h = setTimeout(() => t.classList.add('hidden'), 3200);
+  },
+
+  Bus: (function () {
+    const handlers = new Map();
+    return {
+      on(event, fn) {
+        if (!handlers.has(event)) handlers.set(event, new Set());
+        handlers.get(event).add(fn);
+      },
+      off(event, fn) {
+        const s = handlers.get(event);
+        if (s) s.delete(fn);
+      },
+      emit(event, detail) {
+        const s = handlers.get(event);
+        if (!s) return;
+        s.forEach((fn) => {
+          try { fn(detail); } catch (err) { console.error('Bus handler failed:', err); }
+        });
+      }
+    };
+  })(),
 
   storage: {
     get(key, fallback) {

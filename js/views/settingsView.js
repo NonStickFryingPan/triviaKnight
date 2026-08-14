@@ -52,7 +52,7 @@ const SettingsView = (function () {
   function saveKey() {
     const input = document.getElementById('api-key-input');
     LlmClient.setApiKey(input.value);
-    toast(input.value.trim() ? 'API key saved' : 'API key cleared');
+    Tk.toast(input.value.trim() ? 'API key saved' : 'API key cleared');
   }
 
   function backupCard() {
@@ -81,7 +81,7 @@ const SettingsView = (function () {
     a.click();
     a.remove();
     URL.revokeObjectURL(a.href);
-    toast('Backup downloaded');
+    Tk.toast('Backup downloaded');
   }
 
   async function importBackup(e) {
@@ -91,10 +91,10 @@ const SettingsView = (function () {
     const text = await file.text();
     try {
       await Db.importAll(text);
-      toast('Backup imported');
+      Tk.toast('Backup imported');
       refreshStats();
     } catch (err) {
-      toast(err.message, true);
+      Tk.toast(err.message, true);
     }
   }
 
@@ -107,12 +107,12 @@ const SettingsView = (function () {
           Tk.el('input', {
             type: 'text',
             id: 'sync-url',
-            value: Tk.storage.get('tk_sheet_url', ''),
+            value: Tk.storage.get(Tk.KEYS.sheetUrl, ''),
             placeholder: 'https://script.google.com/macros/s/…/exec',
             autocomplete: 'off',
             onchange: (ev) => {
-              Tk.storage.set('tk_sheet_url', ev.target.value.trim());
-              toast('Apps Script URL saved');
+              Tk.storage.set(Tk.KEYS.sheetUrl, ev.target.value.trim());
+              Tk.toast('Apps Script URL saved');
             }
           })
         ]),
@@ -121,12 +121,12 @@ const SettingsView = (function () {
           Tk.el('input', {
             type: 'password',
             id: 'sync-token',
-            value: Tk.storage.get('tk_sheet_token', ''),
+            value: Tk.storage.get(Tk.KEYS.sheetToken, ''),
             placeholder: 'secret token',
             autocomplete: 'off',
             onchange: (ev) => {
-              Tk.storage.set('tk_sheet_token', ev.target.value.trim());
-              toast('Token saved');
+              Tk.storage.set(Tk.KEYS.sheetToken, ev.target.value.trim());
+              Tk.toast('Token saved');
             }
           })
         ])
@@ -148,7 +148,7 @@ const SettingsView = (function () {
 
   function lockSite() {
     LlmClient.lock();
-    toast('Locked — enter your passcode to reopen');
+    Tk.toast('Locked — enter your passcode to reopen');
     location.hash = '#/';
   }
 
@@ -162,13 +162,13 @@ const SettingsView = (function () {
     try {
       const res = await SheetsSync.pull();
       if (res.added || res.updated) {
-        toast('Pulled ' + res.added + ' new, ' + res.updated + ' updated');
+        Tk.toast('Pulled ' + res.added + ' new, ' + res.updated + ' updated');
         refreshStats();
       } else {
-        toast('Up to date');
+        Tk.toast('Up to date');
       }
     } catch (err) {
-      toast(err.message, true);
+      Tk.toast(err.message, true);
     } finally {
       setBusy('sync-pull', false);
     }
@@ -183,9 +183,9 @@ const SettingsView = (function () {
         return;
       }
       const res = await SheetsSync.push();
-      toast('Pushed ' + res.count + ' cards');
+      Tk.toast('Pushed ' + res.count + ' cards');
     } catch (err) {
-      toast(err.message, true);
+      Tk.toast(err.message, true);
     } finally {
       setBusy('sync-push', false);
     }
@@ -202,12 +202,12 @@ const SettingsView = (function () {
             id: 'daily-input',
             min: '1',
             max: '500',
-            value: Tk.storage.get('dsk_new_per_day', '20'),
+            value: Tk.storage.get(Tk.KEYS.newPerDay, '20'),
             onchange: (ev) => {
               const v = Math.max(1, Math.min(500, parseInt(ev.target.value, 10) || 20));
-              Tk.storage.set('dsk_new_per_day', String(v));
+              Tk.storage.set(Tk.KEYS.newPerDay, String(v));
               ev.target.value = v;
-              toast('New cards per day: ' + v);
+              Tk.toast('New cards per day: ' + v);
             }
           })
         ])
@@ -233,14 +233,6 @@ const SettingsView = (function () {
     line.textContent = cards.length + ' cards, ' + cats + ' categories, ' + due + ' due today.';
   }
 
-  function toast(msg, err) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.toggle('err', !!err);
-    t.classList.remove('hidden');
-    clearTimeout(t._h);
-    t._h = setTimeout(() => t.classList.add('hidden'), 3200);
-  }
 
   return { render };
 })();

@@ -27,7 +27,7 @@
     if (viewLoads.has(file)) return viewLoads.get(file);
     const p = new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = file + '?v=20260815';
+      s.src = file + '?v=20260816';
       s.onload = () => {
         loadedViews.add(file);
         viewLoads.delete(file);
@@ -50,7 +50,7 @@
         await ensureView(VIEW_FILES['unlock']);
       } catch (err) {
         console.error('Failed to load unlock view:', err);
-        toast(err.message, true);
+        Tk.toast(err.message, true);
         return;
       }
       viewEl.classList.add('home-route');
@@ -69,7 +69,7 @@
         await ensureView(f);
       } catch (err) {
         console.error('Failed to load view:', err);
-        toast(err.message, true);
+        Tk.toast(err.message, true);
         return;
       }
     }
@@ -82,7 +82,7 @@
       fn();
     } catch (err) {
       console.error('Route render failed:', err);
-      toast((err && err.message) ? err.message : String(err), true);
+      Tk.toast((err && err.message) ? err.message : String(err), true);
     }
     backLink(isHome);
     window.scrollTo(0, 0);
@@ -113,7 +113,7 @@
       Tk.el('div', { class: 'tape' }),
       Tk.el('span', { class: 'hc-icon' }, [Tk.icon('dump', 26)]),
       Tk.el('h2', { text: 'Dump thoughts' }),
-      Tk.el('p', { text: 'Paste raw facts, get flashcards, MCQs and fill-in-the-blanks. One click, one LLM call — everything else stays on your desk.' }),
+      Tk.el('p', { text: 'Paste raw facts, get flashcards, MCQs and fill-in-the-blanks. One click, one LLM call. The cards stay in this browser.' }),
       Tk.el('span', { class: 'hc-meta' }, [Tk.icon('pen', 14), 'start a new dump'])
     ]);
 
@@ -121,7 +121,7 @@
       Tk.el('div', { class: 'tape' }),
       Tk.el('span', { class: 'hc-icon' }, [Tk.icon('review', 26)]),
       Tk.el('h2', { text: 'Take a quiz' }),
-      Tk.el('p', { text: 'Review what is due today. The FSRS scheduler decides when each card comes back — not you, not the machine, just math.' }),
+      Tk.el('p', { text: 'Review the cards that are due today. The scheduler decides when each card appears again.' }),
       Tk.el('span', { class: 'hc-meta hc-due', id: 'hc-due' }, [Tk.icon('target', 14), 'counting…'])
     ]);
 
@@ -139,7 +139,7 @@
       if (!el) return;
       const n = due.length;
       el.textContent = '';
-      el.append(Tk.icon('target', 14), document.createTextNode(n === 0 ? 'all caught up' : n + ' card' + (n === 1 ? '' : 's') + ' due today'));
+      el.append(Tk.icon('target', 14), document.createTextNode(n === 0 ? 'no cards due today' : n + ' card' + (n === 1 ? '' : 's') + ' due today'));
     });
   }
 
@@ -147,21 +147,12 @@
     return () => { location.hash = hash; };
   }
 
-  function toast(msg, err) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.toggle('err', !!err);
-    t.classList.remove('hidden');
-    clearTimeout(t._h);
-    t._h = setTimeout(() => t.classList.add('hidden'), 3200);
-  }
-
   function autoPull() {
     const hash = location.hash.replace(/^#/, '');
     if (SheetsSync.isConfigured() && hash.slice(0, 7) !== '/review') {
       SheetsSync.pull().then((res) => {
-        if (res.added || res.updated) toast('Pulled ' + res.added + ' new, ' + res.updated + ' updated');
-      }).catch((err) => toast(err.message, true));
+        if (res.added || res.updated) Tk.toast('Pulled ' + res.added + ' new, ' + res.updated + ' updated');
+      }).catch((err) => Tk.toast(err.message, true));
     }
   }
 
@@ -199,6 +190,17 @@
       route();
       autoPull();
     });
+    window.addEventListener('unhandledrejection', (e) => {
+      e.preventDefault();
+      console.error('Unhandled rejection:', e.reason);
+      Tk.toast((e.reason && e.reason.message) ? e.reason.message : 'Unexpected error', true);
+    });
+    window.addEventListener('error', (e) => {
+      console.error('Uncaught error:', e.error || e.message);
+      Tk.toast((e.error && e.error.message) ? e.error.message : 'Unexpected error', true);
+    });
+    Tk.Bus.on('cards:saved', () => SheetsSync.pushIfDirty());
+    Tk.Bus.on('session:finished', () => SheetsSync.pushIfDirty());
     Db.initDB().catch((err) => {
       console.error('Storage failed to open:', err);
       viewEl.innerHTML = '';
@@ -222,7 +224,7 @@
       autoPull();
     }).catch((err) => {
       console.error('App init failed:', err);
-      toast((err && err.message) ? err.message : String(err), true);
+      Tk.toast((err && err.message) ? err.message : String(err), true);
     });
   }
 

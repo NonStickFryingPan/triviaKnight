@@ -1,8 +1,8 @@
 'use strict';
 
 const LlmClient = (function () {
-  const API_KEY_KEY = 'dsk_api_key';
-  const PASS_KEY = 'tk_site_pass';
+  const API_KEY_KEY = Tk.KEYS.apiKey;
+  const PASS_KEY = Tk.KEYS.pass;
   const CHUNK_SIZE = 3000;
   const IS_LOCAL = typeof location !== 'undefined' &&
     (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
@@ -43,8 +43,8 @@ const LlmClient = (function () {
 
   function lock() {
     Tk.storage.remove(PASS_KEY);
-    Tk.storage.remove('tk_sheet_url');
-    Tk.storage.remove('tk_sheet_token');
+    Tk.storage.remove(Tk.KEYS.sheetUrl);
+    Tk.storage.remove(Tk.KEYS.sheetToken);
   }
 
   function login(password) {
@@ -60,8 +60,8 @@ const LlmClient = (function () {
         throw new Error((data && data.error) || 'Login failed');
       }
       setPass(password);
-      if (data.sheetUrl) Tk.storage.set('tk_sheet_url', data.sheetUrl);
-      if (data.sheetToken) Tk.storage.set('tk_sheet_token', data.sheetToken);
+      if (data.sheetUrl) Tk.storage.set(Tk.KEYS.sheetUrl, data.sheetUrl);
+      if (data.sheetToken) Tk.storage.set(Tk.KEYS.sheetToken, data.sheetToken);
       return data;
     }));
   }

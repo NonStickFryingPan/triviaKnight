@@ -1,9 +1,9 @@
 'use strict';
 
 const SheetsSync = (function () {
-  const URL_KEY = 'tk_sheet_url';
-  const TOKEN_KEY = 'tk_sheet_token';
-  const LAST_SYNC_KEY = 'tk_sheet_last_sync';
+  const URL_KEY = Tk.KEYS.sheetUrl;
+  const TOKEN_KEY = Tk.KEYS.sheetToken;
+  const LAST_SYNC_KEY = Tk.KEYS.lastSync;
   const TIMEOUT_MS = 60000;
 
   function isConfigured() {

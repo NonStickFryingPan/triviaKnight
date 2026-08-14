@@ -200,22 +200,22 @@ const LibraryView = (function () {
       const cat = form.querySelector('#add-cat').value.trim();
       const v1 = form.querySelector('#add-f1').value.trim();
       const v2 = form.querySelector('#add-f2').value.trim();
-      if (!cat || !v1 || !v2) { toast('Fill every field', true); return; }
+      if (!cat || !v1 || !v2) { Tk.toast('Fill every field', true); return; }
       let card;
       if (type === 'flashcard') card = { type, category: cat, front: v1, back: v2 };
       else if (type === 'mcq') {
         const options = v2.split('\n').map((s) => s.trim()).filter(Boolean);
-        if (options.length < 2) { toast('Need at least 2 options', true); return; }
+        if (options.length < 2) { Tk.toast('Need at least 2 options', true); return; }
         card = { type, category: cat, question: v1, options, correctIndex: 0 };
       } else {
-        if (v1.indexOf('___') === -1) { toast('Sentence must contain ___', true); return; }
+        if (v1.indexOf('___') === -1) { Tk.toast('Sentence must contain ___', true); return; }
         card = { type, category: cat, sentence: v1, answer: v2 };
       }
       await Db.addCard(card);
-      SheetsSync.pushIfDirty();
+      Tk.Bus.emit('cards:saved');
       state.showAdd = false;
       render(document.getElementById('view'));
-      toast('Card added');
+      Tk.toast('Card added');
     });
     return form;
   }
@@ -233,14 +233,6 @@ const LibraryView = (function () {
     return 'due in ' + days + 'd';
   }
 
-  function toast(msg, err) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.toggle('err', !!err);
-    t.classList.remove('hidden');
-    clearTimeout(t._h);
-    t._h = setTimeout(() => t.classList.add('hidden'), 3200);
-  }
 
   return { render };
 })();

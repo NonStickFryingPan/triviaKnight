@@ -7,10 +7,24 @@ const DumpView = (function () {
     cards: []
   };
 
+  const STAGE_TRANSITIONS = {
+    input: ['loading'],
+    loading: ['preview', 'input'],
+    preview: ['input']
+  };
+
+  function goStage(next) {
+    const allowed = STAGE_TRANSITIONS[state.stage] || [];
+    if (allowed.indexOf(next) === -1) {
+      throw new Error('Illegal dump stage: ' + state.stage + ' -> ' + next);
+    }
+    state.stage = next;
+  }
+
   function render(root) {
     root.innerHTML = '';
     const title = Tk.el('h1', { class: 'page-title', text: 'Dump thoughts' });
-    const sub = Tk.el('p', { class: 'page-sub', text: 'paste raw facts — the machine turns them into cards' });
+    const sub = Tk.el('p', { class: 'page-sub', text: 'paste raw facts — the app turns them into cards' });
     root.append(title, sub, renderStage());
   }
 
@@ -54,7 +68,7 @@ const DumpView = (function () {
     return Tk.el('div', { class: 'paper dump-box' }, [
       Tk.el('div', { class: 'loader-row' }, [
         Tk.el('div', { class: 'stamp-spin', text: 'k' }),
-        Tk.el('span', { id: 'gen-progress', text: 'Sharpening the pencil… turning your notes into cards' })
+        Tk.el('span', { id: 'gen-progress', text: 'Generating cards from your notes…' })
       ])
     ]);
   }
@@ -73,7 +87,7 @@ const DumpView = (function () {
         Tk.el('button', {
           class: 'btn btn-ghost btn-small',
           text: 'Start over',
-          onclick: () => { state = { stage: 'input', cards: [] }; render(document.getElementById('view')); }
+          onclick: () => { state.cards = []; goStage('input'); render(document.getElementById('view')); }
         }),
         Tk.el('button', {
           class: 'btn btn-primary btn-small',
@@ -150,9 +164,9 @@ const DumpView = (function () {
   async function onGenerate() {
     const text = document.getElementById('dump-text');
     const dumpText = (text && text.value || '').trim();
-    if (!dumpText) { toast('Nothing to generate — paste some facts first', true); return; }
-    if (dumpText.length < 15) { toast('That\'s too short to turn into cards — paste a bit more', true); return; }
-    state.stage = 'loading';
+    if (!dumpText) { Tk.toast('Nothing to generate — paste some facts first', true); return; }
+    if (dumpText.length < 15) { Tk.toast('That\'s too short to turn into cards — paste a bit more', true); return; }
+    goStage('loading');
     render(document.getElementById('view'));
     try {
       const cats = await Db.getCategories();
@@ -160,25 +174,25 @@ const DumpView = (function () {
         const el = document.getElementById('gen-progress');
         if (!el) return;
         el.textContent = total > 1
-          ? 'Sharpening the pencil… part ' + chunk + ' of ' + total + (made > 0 ? ' (' + made + ' card' + (made === 1 ? '' : 's') + ' so far)' : '')
-          : 'Sharpening the pencil… turning your notes into cards';
+          ? 'Generating cards… part ' + chunk + ' of ' + total + (made > 0 ? ' (' + made + ' card' + (made === 1 ? '' : 's') + ' so far)' : '')
+          : 'Generating cards from your notes…';
       });
-      state = { stage: 'preview', cards: res.cards };
+      state.cards = res.cards; goStage('preview');
       render(document.getElementById('view'));
       if (res.cards.length === 0 && res.failedChunks === 0) {
-        state = { stage: 'input', cards: [] };
+        state.cards = []; goStage('input');
         render(document.getElementById('view'));
-        toast('No cards could be generated — try rephrasing or shorter text', true);
+        Tk.toast('No cards could be generated — try rephrasing or shorter text', true);
         return;
       }
       const notes = [];
       if (res.skipped > 0) notes.push('skipped ' + res.skipped + ' card' + (res.skipped === 1 ? '' : 's'));
       if (res.failedChunks > 0) notes.push(res.failedChunks + ' of ' + res.chunks + ' part' + (res.failedChunks === 1 ? '' : 's') + ' failed');
-      if (notes.length > 0) toast(notes.join(' — ') + ' — the rest are ready', true);
+      if (notes.length > 0) Tk.toast(notes.join(' — ') + ' — the rest are ready', true);
     } catch (err) {
-      state = { stage: 'input', cards: [] };
+      state.cards = []; goStage('input');
       render(document.getElementById('view'));
-      toast(err.message, true);
+      Tk.toast(err.message, true);
     }
   }
 
@@ -190,7 +204,7 @@ const DumpView = (function () {
       if (c.type === 'fill_blank') return (c.sentence || '').trim() && (c.answer || '').trim();
       return false;
     });
-    if (valid.length === 0) { toast('No complete cards to save', true); return; }
+    if (valid.length === 0) { Tk.toast('No complete cards to save', true); return; }
     let saved = 0;
     let failed = 0;
     for (const card of valid) {
@@ -202,20 +216,12 @@ const DumpView = (function () {
         console.error('Card save failed:', err);
       }
     }
-    state = { stage: 'input', cards: [] };
+    state.cards = []; goStage('input');
     render(document.getElementById('view'));
-    if (saved > 0) SheetsSync.pushIfDirty();
-    toast('Saved ' + saved + ' card' + (saved === 1 ? '' : 's') + (failed > 0 ? ', ' + failed + ' failed' : ''));
+    if (saved > 0) Tk.Bus.emit('cards:saved', { count: saved });
+    Tk.toast('Saved ' + saved + ' card' + (saved === 1 ? '' : 's') + (failed > 0 ? ', ' + failed + ' failed' : ''));
   }
 
-  function toast(msg, err) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.toggle('err', !!err);
-    t.classList.remove('hidden');
-    clearTimeout(t._h);
-    t._h = setTimeout(() => t.classList.add('hidden'), 3200);
-  }
 
   return { render };
 })();

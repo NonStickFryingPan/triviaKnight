@@ -24,7 +24,7 @@ const ReviewView = (function () {
   async function renderReady(root) {
     root.innerHTML = '';
     const title = Tk.el('h1', { class: 'page-title', text: 'Review' });
-    const sub = Tk.el('p', { class: 'page-sub', text: 'keep the ink fresh' });
+    const sub = Tk.el('p', { class: 'page-sub', text: 'review the cards that are due today' });
     root.append(title, sub);
     const box = Tk.el('div', { class: 'paper', style: 'padding:40px;text-align:center;max-width:520px;margin:0 auto' }, [
       Tk.el('div', { class: 'tape' }),
@@ -34,15 +34,15 @@ const ReviewView = (function () {
     root.appendChild(box);
     try {
       const due = await Db.getDueCards(new Date().toISOString());
-      const limit = parseInt(Tk.storage.get('dsk_new_per_day', '20'), 10) || 20;
+      const limit = parseInt(Tk.storage.get(Tk.KEYS.newPerDay, '20'), 10) || 20;
       const shuffled = Tk.shuffle(due);
       const news = shuffled.filter((c) => (c.reps || 0) === 0);
       const repeats = shuffled.filter((c) => (c.reps || 0) > 0);
       const queue = repeats.concat(news.slice(0, limit));
       if (queue.length === 0) {
         const empty = Tk.el('div', { class: 'empty-state', style: 'margin-top:26px' }, [
-          Tk.el('p', { text: 'All caught up — nothing due today.' }),
-          Tk.el('p', { text: 'Dump some new facts to feed the quill.' })
+          Tk.el('p', { text: 'No cards due today.' }),
+          Tk.el('p', { text: 'Add new facts to create more cards.' })
         ]);
         root.appendChild(empty);
         return;
@@ -52,7 +52,7 @@ const ReviewView = (function () {
       session.correct = 0;
       renderCard(root, queue[0]);
     } catch (err) {
-      toast(err.message, true);
+      Tk.toast(err.message, true);
     }
   }
 
@@ -137,7 +137,7 @@ const ReviewView = (function () {
       const res = CardTypes.grade(card, input.value);
       if (res.correct) session.correct++;
       persistReview(card, res.correct ? 'good' : 'again')
-        .catch((err) => toast(err.message, true))
+        .catch((err) => Tk.toast(err.message, true))
         .then(() => showFeedback(feedback, res, card, () => next()));
     };
     checkBtn.addEventListener('click', gradeIt);
@@ -154,7 +154,7 @@ const ReviewView = (function () {
       if (idx === pickedIdx) btn.classList.add(res.correct ? 'correct' : 'wrong');
     });
     persistReview(card, res.correct ? 'good' : 'again')
-      .catch((err) => toast(err.message, true))
+      .catch((err) => Tk.toast(err.message, true))
       .then(() => {
         const correctText = CardTypes.reveal(card);
         if (correctText) {
@@ -208,7 +208,7 @@ const ReviewView = (function () {
       const res = CardTypes.grade(card, QUALITY[key]);
       if (res.correct) session.correct++;
       persistReview(card, key)
-        .catch((err) => toast(err.message, true))
+        .catch((err) => Tk.toast(err.message, true))
         .then(() => {
           session.index++;
           render(document.getElementById('view'));
@@ -228,18 +228,19 @@ const ReviewView = (function () {
   }
 
   function next() {
+    if (!session.queue) return;
     session.index++;
     render(document.getElementById('view'));
   }
 
   function renderSummary(root) {
-    SheetsSync.pushIfDirty();
+    Tk.Bus.emit('session:finished');
     const total = session.queue.length;
     const pct = total === 0 ? 0 : Math.round((session.correct / total) * 100);
     const box = Tk.el('div', { class: 'paper summary-box' }, [
       Tk.el('div', { class: 'tape' }),
       Tk.el('div', { class: 'big', text: pct + '%' }),
-      Tk.el('div', { class: 'med', text: pct >= 80 ? 'Well inked' : pct >= 50 ? 'Decent scrawl' : 'Back to the books' }),
+      Tk.el('div', { class: 'med', text: pct >= 80 ? 'Above 80% correct' : pct >= 50 ? '50 to 80% correct' : 'Below 50% correct' }),
       Tk.el('p', { class: 'meta', text: session.correct + ' / ' + total + ' remembered' }),
       Tk.el('button', {
         class: 'btn btn-primary',
@@ -250,14 +251,6 @@ const ReviewView = (function () {
     root.append(box);
   }
 
-  function toast(msg, err) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.toggle('err', !!err);
-    t.classList.remove('hidden');
-    clearTimeout(t._h);
-    t._h = setTimeout(() => t.classList.add('hidden'), 3200);
-  }
 
   // drop a finished session when leaving the review page; mid-session state is kept
   function reset() {

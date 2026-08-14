@@ -8,7 +8,7 @@ const UnlockView = (function () {
       Tk.el('div', { class: 'tape' }),
       Tk.el('div', { class: 'unlock-logo' }, [Tk.icon('helmet', 64)]),
       Tk.el('h1', { class: 'unlock-title', text: 'Trivia Knight' }),
-      Tk.el('p', { class: 'hint', text: 'Enter your passcode to open your desk.' }),
+      Tk.el('p', { class: 'hint', text: 'Enter your passcode to continue.' }),
       Tk.el('div', { class: 'field', style: 'width:100%;max-width:280px;margin:0' }, [
         Tk.el('label', { text: 'Passcode', for: 'unlock-pass' }),
         Tk.el('input', {
@@ -35,10 +35,10 @@ const UnlockView = (function () {
     btn.disabled = true;
     try {
       await LlmClient.login(pass);
-      toast('Unlocked');
+      Tk.toast('Unlocked');
       document.dispatchEvent(new CustomEvent('tk:unlocked'));
     } catch (err) {
-      toast(err.message, true);
+      Tk.toast(err.message, true);
       input.value = '';
       input.focus();
     } finally {
@@ -46,14 +46,6 @@ const UnlockView = (function () {
     }
   }
 
-  function toast(msg, err) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.toggle('err', !!err);
-    t.classList.remove('hidden');
-    clearTimeout(t._h);
-    t._h = setTimeout(() => t.classList.add('hidden'), 3200);
-  }
 
   return { render };
 })();
