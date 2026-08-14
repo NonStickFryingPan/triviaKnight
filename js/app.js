@@ -27,7 +27,7 @@
     if (viewLoads.has(file)) return viewLoads.get(file);
     const p = new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = file + '?v=20260816';
+      s.src = file + '?v=20260817';
       s.onload = () => {
         loadedViews.add(file);
         viewLoads.delete(file);
@@ -113,7 +113,7 @@
       Tk.el('div', { class: 'tape' }),
       Tk.el('span', { class: 'hc-icon' }, [Tk.icon('dump', 26)]),
       Tk.el('h2', { text: 'Dump thoughts' }),
-      Tk.el('p', { text: 'Paste raw facts, get flashcards, MCQs and fill-in-the-blanks. One click, one LLM call. The cards stay in this browser.' }),
+      Tk.el('p', { text: 'Paste raw facts, get flashcards, MCQs and fill-in-the-blanks.' }),
       Tk.el('span', { class: 'hc-meta' }, [Tk.icon('pen', 14), 'start a new dump'])
     ]);
 
