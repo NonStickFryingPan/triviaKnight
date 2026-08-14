@@ -87,20 +87,12 @@ body.is-home .desk-doodles { display: block; }
   pointer-events: none;
   shape-rendering: crispEdges;
 }
-.doodle-frame {
-  left: 50%;
-  top: 50%;
-  width: min(720px, 94vw);
-  color: rgba(3, 25, 46, 0.3);
-  opacity: 0.85;
-  transform: translate(-50%, -50%) rotate(1.6deg);
-}
 .doodle-coffee {
   left: 4vw;
   top: 12vh;
   width: 150px;
   color: rgba(104, 96, 0, 0.55);
-  opacity: 0.55;
+  opacity: 1;
   transform: rotate(-14deg);
 }
 .doodle-pencil {
@@ -108,7 +100,7 @@ body.is-home .desk-doodles { display: block; }
   bottom: 14vh;
   width: 120px;
   color: rgba(186, 26, 26, 0.5);
-  opacity: 0.5;
+  opacity: 1;
   animation: pencil-wiggle 3.2s ease-in-out infinite;
 }
 .doodle-sun {
@@ -116,7 +108,7 @@ body.is-home .desk-doodles { display: block; }
   top: 9vh;
   width: 130px;
   color: rgba(104, 96, 0, 0.5);
-  opacity: 0.55;
+  opacity: 1;
   animation: sun-spin 44s linear infinite;
 }
 .doodle-plant {
@@ -124,15 +116,15 @@ body.is-home .desk-doodles { display: block; }
   bottom: 16vh;
   width: 120px;
   color: rgba(30, 122, 60, 0.5);
-  opacity: 0.5;
+  opacity: 1;
   transform: rotate(8deg);
 }
 .doodle-star {
-  left: 38vw;
-  top: 7vh;
+  left: 34vw;
+  top: 6vh;
   width: 70px;
   color: rgba(186, 26, 26, 0.42);
-  opacity: 0.55;
+  opacity: 1;
   transform: rotate(12deg);
 }
 .doodle-clip {
@@ -140,7 +132,7 @@ body.is-home .desk-doodles { display: block; }
   bottom: 12vh;
   width: 70px;
   color: rgba(3, 25, 46, 0.5);
-  opacity: 0.5;
+  opacity: 1;
   transform: rotate(100deg);
 }
 .doodle-squiggle {
@@ -148,7 +140,7 @@ body.is-home .desk-doodles { display: block; }
   top: 44vh;
   width: 230px;
   color: rgba(3, 25, 46, 0.38);
-  opacity: 0.55;
+  opacity: 1;
   animation: squiggle-drift 9s ease-in-out infinite alternate;
 }
 .doodle-arrow-left {
@@ -156,7 +148,7 @@ body.is-home .desk-doodles { display: block; }
   top: 52%;
   width: 125px;
   color: rgba(3, 25, 46, 0.55);
-  opacity: 0.6;
+  opacity: 1;
   animation: arrow-nudge-l 4.5s ease-in-out infinite alternate;
 }
 .doodle-arrow-right {
@@ -164,15 +156,15 @@ body.is-home .desk-doodles { display: block; }
   top: 40%;
   width: 125px;
   color: rgba(104, 96, 0, 0.55);
-  opacity: 0.6;
+  opacity: 1;
   animation: arrow-nudge-r 4.5s ease-in-out 0.7s infinite alternate;
 }
 .doodle-cat {
-  left: 42vw;
-  top: 63vh;
+  left: 56vw;
+  top: 5vh;
   width: 90px;
   color: rgba(3, 25, 46, 0.45);
-  opacity: 0.55;
+  opacity: 1;
   transform: rotate(-7deg);
 }
 
