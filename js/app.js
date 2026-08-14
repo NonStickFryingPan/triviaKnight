@@ -27,7 +27,7 @@
     if (viewLoads.has(file)) return viewLoads.get(file);
     const p = new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = file + '?v=20260817';
+      s.src = file + '?v=20260818';
       s.onload = () => {
         loadedViews.add(file);
         viewLoads.delete(file);
@@ -117,15 +117,13 @@
       Tk.el('span', { class: 'hc-meta' }, [Tk.icon('pen', 14), 'start a new dump'])
     ]);
 
-    const reviewCard = Tk.el('div', { class: 'paper home-card rot--1', role: 'link', tabindex: '0', onclick: go('/review') }, [
-      Tk.el('div', { class: 'tape' }),
-      Tk.el('span', { class: 'hc-icon' }, [Tk.icon('review', 26)]),
-      Tk.el('h2', { text: 'Take a quiz' }),
-      Tk.el('p', { text: 'Review the cards that are due today. The scheduler decides when each card appears again.' }),
-      Tk.el('span', { class: 'hc-meta hc-due', id: 'hc-due' }, [Tk.icon('target', 14), 'counting…'])
+    const quizBtn = Tk.el('button', { class: 'home-quiz rot--1', onclick: go('/review') }, [
+      Tk.el('div', { class: 'hc-icon' }, [Tk.icon('review', 20)]),
+      'Take a quiz',
+      Tk.el('span', { class: 'quiz-due', id: 'hc-due' }, [Tk.icon('target', 13), 'counting…'])
     ]);
 
-    grid.append(dumpCard, reviewCard);
+    grid.append(dumpCard, quizBtn);
 
     const secondary = Tk.el('div', { class: 'home-secondary' }, [
       Tk.el('a', { class: 'home-btn rot-1', href: '#/library' }, [Tk.icon('library', 15), 'Library']),

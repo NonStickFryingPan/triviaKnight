@@ -272,8 +272,8 @@ select { cursor: pointer; appearance: none; background: var(--paper); }
 
 .home-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 34px;
+  grid-template-columns: 1fr;
+  gap: 26px;
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
@@ -356,6 +356,45 @@ select { cursor: pointer; appearance: none; background: var(--paper); }
   }
 }
 .home-btn:active { transform: scale(0.97); }
+
+.home-quiz {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 14px 20px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid rgba(3, 25, 46, 0.45);
+  border-radius: var(--radius-hand);
+  cursor: pointer;
+  transition: transform 0.16s ease-out, color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+  user-select: none;
+}
+.home-quiz .hc-icon { color: var(--olive); }
+.home-quiz .quiz-due {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--on-surface-variant);
+  opacity: 0.75;
+}
+@media (hover: hover) and (pointer: fine) {
+  .home-quiz:hover {
+    color: var(--ink);
+    border-color: var(--ink);
+    transform: translateY(-2px) rotate(0.5deg);
+    box-shadow: var(--shadow);
+  }
+}
+.home-quiz:active { transform: scale(0.97); }
 
 @keyframes rise-in { from { opacity: 0; transform: translateY(10px); } }
 
