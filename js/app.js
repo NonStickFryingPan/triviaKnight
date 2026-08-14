@@ -19,6 +19,8 @@
     '/settings': 'js/views/settingsView.js',
     'unlock': 'js/views/unlockView.js'
   };
+  const CACHE_BUST = '20260821';
+  const PRELOAD_VIEWS = ['/dump', '/review', '/library', '/settings', 'unlock'];
   const loadedViews = new Set();
   const viewLoads = new Map();
 
@@ -27,7 +29,7 @@
     if (viewLoads.has(file)) return viewLoads.get(file);
     const p = new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = file + '?v=20260818';
+      s.src = file + '?v=' + CACHE_BUST;
       s.onload = () => {
         loadedViews.add(file);
         viewLoads.delete(file);
@@ -158,6 +160,21 @@
 
   function go(hash) {
     return () => { location.hash = hash; };
+  }
+
+  function preloadViews() {
+    let i = 0;
+    function next() {
+      if (i >= PRELOAD_VIEWS.length) return;
+      const file = VIEW_FILES[PRELOAD_VIEWS[i]];
+      i += 1;
+      if (!file) return next();
+      ensureView(file).then(next).catch((err) => {
+        console.warn('View preload failed:', err);
+        setTimeout(next, 1500);
+      });
+    }
+    next();
   }
 
   function autoPull() {
@@ -312,6 +329,7 @@
       viewEl.appendChild(box);
       return;
     }
+    preloadViews();
     window.addEventListener('hashchange', route);
     document.addEventListener('tk:unlocked', () => {
       route();
