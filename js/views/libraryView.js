@@ -8,8 +8,9 @@ const LibraryView = (function () {
     root.innerHTML = '';
     const title = Tk.el('h1', { class: 'page-title', text: 'Library' });
     const sub = Tk.el('p', { class: 'page-sub', text: 'your whole archive, one page' });
-    root.append(title, sub, renderToolbar(), Tk.el('div', { id: 'lib-list' }));
+    root.append(title, sub, renderToolbar());
     if (state.showAdd) root.appendChild(renderAddForm());
+    root.appendChild(Tk.el('div', { id: 'lib-list' }));
     refreshList(root);
   }
 
@@ -94,6 +95,7 @@ const LibraryView = (function () {
         class: 'btn btn-ghost btn-small',
         text: 'Edit',
         onclick: () => {
+          if (row.querySelector('.edit-zone')) return;
           const zone = Tk.el('div', { class: 'edit-zone' });
           zone.appendChild(editForm(card, () => refreshList(document.getElementById('view'))));
           row.appendChild(zone);
@@ -155,7 +157,7 @@ const LibraryView = (function () {
   }
 
   function renderAddForm() {
-    const form = Tk.el('div', { class: 'paper add-form rot-2' }, [
+    const form = Tk.el('form', { class: 'paper add-form rot-2' }, [
       Tk.el('h3', { style: 'font-family:var(--font-display);font-weight:700;font-size:20px;margin-bottom:16px', text: 'Add card manually' }),
       Tk.el('div', { class: 'field' }, [
         Tk.el('label', { text: 'Type' }),
@@ -166,7 +168,10 @@ const LibraryView = (function () {
         ])
       ]),
       Tk.el('div', { id: 'add-fields' }),
-      Tk.el('button', { class: 'btn btn-primary', id: 'add-save', text: 'Add to library' }, [Tk.icon('plus', 16)])
+      Tk.el('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, [
+        Tk.el('button', { class: 'btn btn-primary', id: 'add-save', type: 'submit', text: 'Add to library' }, [Tk.icon('plus', 16)]),
+        Tk.el('button', { class: 'btn btn-ghost', type: 'button', text: 'Cancel', onclick: () => { state.showAdd = false; render(document.getElementById('view')); } })
+      ])
     ]);
     const fields = form.querySelector('#add-fields');
     const typeSel = form.querySelector('#add-type');
@@ -187,7 +192,10 @@ const LibraryView = (function () {
     };
     typeSel.addEventListener('change', fillFields);
     fillFields();
-    form.querySelector('#add-save').addEventListener('click', async () => {
+    const firstField = form.querySelector('#add-cat');
+    if (firstField) firstField.focus();
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
       const type = typeSel.value;
       const cat = form.querySelector('#add-cat').value.trim();
       const v1 = form.querySelector('#add-f1').value.trim();
